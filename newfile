@@ -1,0 +1,303 @@
+TC ID	Test Case Title	Preconditions	Test Steps	Expected Result
+TC_001	
+Verify that the user can register a device-bound passkey using biometrics and then sign in successfully with it (end to end)
+Connect ID is active and has no passkey registered. Device has a screen lock configured. Biometrics (fingerprint / face) are enrolled on the device.
+1. Open the UAP page.
+2. Enter the Connect ID.
+3. Enter the password.
+4. Click the Sign in button.
+5. On the OTP page, enter the correct OTP.
+6. Click Submit.
+7. On the create passkey prompt, choose to create a passkey.
+8. On the OS passkey prompt, verify with biometrics.
+9. Sign out of UAP.
+10. Open the UAP page and choose to sign in with the passkey for the Connect ID.
+11. On the OS passkey prompt, verify with biometrics.
+1. The create passkey prompt is displayed after OTP submission.
+2. The passkey is created and a success confirmation is shown.
+3. The user signs in with the passkey using biometrics and lands on the UAP home page.
+TC_002	
+Verify that the user can register a passkey using device PIN / passcode / pattern and then sign in successfully with the same method (end to end)
+Connect ID is active and has no passkey registered. Device has a screen lock configured. Device PIN / passcode / pattern is set.
+1. Open the UAP page.
+2. Enter the Connect ID.
+3. Enter the password.
+4. Click the Sign in button.
+5. On the OTP page, enter the correct OTP.
+6. Click Submit.
+7. On the create passkey prompt, choose to create a passkey.
+8. On the OS passkey prompt, verify with the device PIN / passcode / pattern.
+9. Sign out of UAP.
+10. Open the UAP page and choose to sign in with the passkey for the Connect ID.
+11. On the OS passkey prompt, verify with the same PIN / passcode / pattern.
+1. The create passkey prompt is displayed after OTP submission.
+2. The passkey is created and a success confirmation is shown.
+3. The user signs in with the passkey using the PIN / passcode / pattern and lands on the UAP home page.
+TC_003	
+Verify that when the OS passkey prompt is cancelled during registration, no passkey is created, and the user can retry, complete registration and sign in (end to end)
+Connect ID is active and has no passkey registered. Device has a screen lock configured.
+1. Open the UAP page.
+2. Enter the Connect ID.
+3. Enter the password.
+4. Click the Sign in button.
+5. On the OTP page, enter the correct OTP.
+6. Click Submit.
+7. On the create passkey prompt, choose to create a passkey.
+8. On the OS passkey prompt, click Cancel.
+9. Retry passkey creation and complete user verification on the OS prompt.
+10. Sign out of UAP.
+11. Open the UAP page and choose to sign in with the passkey for the Connect ID.
+12. Complete user verification on the OS passkey prompt.
+1. After Cancel, no passkey is created and the user is returned to UAP with an option to retry.
+2. On retry, the passkey is created successfully.
+3. The user signs in with the passkey and lands on the UAP home page.
+TC_004	
+Verify that repeated user verification failures during registration do not create a passkey and a clear error message is shown
+Connect ID is active and has no passkey registered. Device has a screen lock configured.
+1. Open the UAP page.
+2. Enter the Connect ID.
+3. Enter the password.
+4. Click the Sign in button.
+5. On the OTP page, enter the correct OTP.
+6. Click Submit.
+7. On the create passkey prompt, choose to create a passkey.
+8. On the OS passkey prompt, fail verification repeatedly (wrong finger / face or wrong PIN) until the OS stops the attempt.
+1. No passkey is created for the Connect ID.
+2. A clear error message is shown and the user can retry or continue without a passkey.
+3. The create passkey prompt is displayed again on the next sign-in.
+TC_005	
+Verify that when the OS passkey prompt times out during registration, no passkey is created and the user can restart registration
+Connect ID is active and has no passkey registered. Device has a screen lock configured.
+1. Open the UAP page.
+2. Enter the Connect ID.
+3. Enter the password.
+4. Click the Sign in button.
+5. On the OTP page, enter the correct OTP.
+6. Click Submit.
+7. On the create passkey prompt, choose to create a passkey.
+8. Leave the OS passkey prompt untouched until it times out.
+9. Retry passkey creation.
+1. After the timeout, no passkey is created and an appropriate message is shown.
+2. The user can restart registration and complete it successfully.
+TC_006	
+Verify that registration on a device with no screen lock configured is blocked and the user is told to set up a screen lock
+Connect ID is active and has no passkey registered. Device has NO screen lock (no biometrics, PIN, passcode or pattern).
+1. Open the UAP page.
+2. Enter the Connect ID.
+3. Enter the password.
+4. Click the Sign in button.
+5. On the OTP page, enter the correct OTP.
+6. Click Submit.
+7. On the create passkey prompt, choose to create a passkey.
+1. The passkey cannot be created without a screen lock.
+2. The user is told to set up a screen lock (OS or app message).
+3. No passkey is registered for the Connect ID.
+TC_007	
+Verify that refreshing the browser during registration does not create a partial or duplicate passkey and the user can restart registration
+Connect ID is active and has no passkey registered. Device has a screen lock configured.
+1. Open the UAP page.
+2. Enter the Connect ID.
+3. Enter the password.
+4. Click the Sign in button.
+5. On the OTP page, enter the correct OTP.
+6. Click Submit.
+7. On the create passkey prompt, choose to create a passkey.
+8. While the OS passkey prompt is displayed, refresh the browser.
+9. Repeat steps 1 to 6 and check the result.
+1. No partial or duplicate passkey is created.
+2. The create passkey prompt is displayed again and registration can be completed.
+TC_008	
+Verify that closing the browser during registration does not create a passkey and the user can register again after reopening
+Connect ID is active and has no passkey registered. Device has a screen lock configured.
+1. Open the UAP page.
+2. Enter the Connect ID.
+3. Enter the password.
+4. Click the Sign in button.
+5. On the OTP page, enter the correct OTP.
+6. Click Submit.
+7. On the create passkey prompt, choose to create a passkey.
+8. While the OS passkey prompt is displayed, close the browser, then reopen it.
+9. Repeat steps 1 to 6 and check the result.
+1. No passkey is created when the browser is closed.
+2. After reopening and signing in, the create passkey prompt is displayed again and registration can be completed.
+TC_009	
+Verify that a network disconnect during registration shows an appropriate error, no passkey is saved, and registration succeeds once the network is restored
+Connect ID is active and has no passkey registered. Device has a screen lock configured.
+1. Open the UAP page.
+2. Enter the Connect ID.
+3. Enter the password.
+4. Click the Sign in button.
+5. On the OTP page, enter the correct OTP.
+6. Click Submit.
+7. On the create passkey prompt, choose to create a passkey.
+8. While the OS passkey prompt is displayed, disconnect the network (Wi-Fi / mobile data off).
+9. Complete user verification on the OS prompt.
+10. Restore the network, repeat steps 1 to 7 and complete user verification.
+1. With the network off, an appropriate error is shown and no passkey is saved for the Connect ID.
+2. After the network is restored, the passkey is created successfully.
+TC_010	
+Verify that pressing browser Back during registration cancels the flow cleanly without creating a passkey
+Connect ID is active and has no passkey registered. Device has a screen lock configured.
+1. Open the UAP page.
+2. Enter the Connect ID.
+3. Enter the password.
+4. Click the Sign in button.
+5. On the OTP page, enter the correct OTP.
+6. Click Submit.
+7. On the create passkey prompt, choose to create a passkey.
+8. While the OS passkey prompt is displayed, press the browser Back button.
+9. Repeat steps 1 to 6 and check the result.
+1. The registration flow is cancelled with no error page or broken state.
+2. No passkey is created.
+3. The create passkey prompt is displayed again on the next sign-in.
+TC_011	
+Verify that opening another browser tab during registration does not interrupt the flow or create a duplicate passkey
+Connect ID is active and has no passkey registered. Device has a screen lock configured.
+1. Open the UAP page.
+2. Enter the Connect ID.
+3. Enter the password.
+4. Click the Sign in button.
+5. On the OTP page, enter the correct OTP.
+6. Click Submit.
+7. On the create passkey prompt, choose to create a passkey.
+8. While the OS passkey prompt is displayed, open a new browser tab.
+9. Return to the UAP tab and complete user verification.
+1. The registration flow continues in the original tab.
+2. Exactly one passkey is created for the Connect ID.
+TC_012	
+Verify that when a passkey already exists for the Connect ID, the create passkey prompt is not displayed on sign-in, on the same or another device
+Connect ID is active and already has a passkey registered on Device 1.
+1. On Device 1: Open the UAP page.
+2. Enter the Connect ID.
+3. Enter the password.
+4. Click the Sign in button.
+5. On the OTP page, enter the correct OTP.
+6. Click Submit.
+7. On Device 2, repeat steps 1 to 6.
+1. The create passkey prompt is NOT displayed on Device 1.
+2. The create passkey prompt is NOT displayed on Device 2.
+3. The user lands on the UAP home page on both devices.
+TC_013	
+Verify that when the user does not create a passkey, the create passkey prompt is displayed again on every subsequent sign-in until a passkey is created
+Connect ID is active and has no passkey registered. Device has a screen lock configured.
+1. Open the UAP page.
+2. Enter the Connect ID.
+3. Enter the password.
+4. Click the Sign in button.
+5. On the OTP page, enter the correct OTP.
+6. Click Submit.
+7. On the create passkey prompt, decline / skip passkey creation.
+8. Sign out and repeat steps 1 to 6.
+9. Decline again, sign out and repeat steps 1 to 6.
+10. Create the passkey and complete user verification.
+11. Sign out and repeat steps 1 to 6.
+1. The create passkey prompt is displayed on every sign-in while no passkey exists.
+2. After the passkey is created, the prompt is no longer displayed.
+TC_014	
+Verify that the OS passkey prompt displays the correct app name and account name (Connect ID)
+Connect ID is active and has no passkey registered. Device has a screen lock configured.
+1. Open the UAP page.
+2. Enter the Connect ID.
+3. Enter the password.
+4. Click the Sign in button.
+5. On the OTP page, enter the correct OTP.
+6. Click Submit.
+7. On the create passkey prompt, choose to create a passkey.
+8. Check the app / site name and the account name shown on the OS passkey prompt.
+1. The OS prompt shows the correct app / site name.
+2. The account name matches the Connect ID that was entered.
+3. Text is correct in English (Canada) and French (Canada).
+TC_015	
+Verify that the passkey list, session details and last-used details are displayed correctly after registration and sign-in (end to end)
+Connect ID is active and has no passkey registered. Device has a screen lock configured.
+1. Open the UAP page.
+2. Enter the Connect ID.
+3. Enter the password.
+4. Click the Sign in button.
+5. On the OTP page, enter the correct OTP.
+6. Click Submit.
+7. On the create passkey prompt, choose to create a passkey.
+8. Complete user verification on the OS passkey prompt.
+9. Sign out of UAP.
+10. Open the UAP page and choose to sign in with the passkey for the Connect ID.
+11. Complete user verification.
+12. Open the passkey management page and check the passkey list, session details and last-used details.
+1. The new passkey is listed with the correct device / name and creation date.
+2. Session details are correct for the current sign-in.
+3. Last-used date and time are updated to the latest passkey sign-in.
+TC_016	
+Verify that when the session expires before registration completes, no passkey is created and the user is prompted to sign in again
+Connect ID is active and has no passkey registered. Device has a screen lock configured.
+1. Open the UAP page.
+2. Enter the Connect ID.
+3. Enter the password.
+4. Click the Sign in button.
+5. On the OTP page, enter the correct OTP.
+6. Click Submit.
+7. Leave the create passkey prompt idle until the UAP session expires.
+8. Choose to create a passkey.
+1. No passkey is created.
+2. A session expired message is shown and the user is taken back to sign in.
+3. The create passkey prompt is displayed again on the next sign-in.
+TC_017	
+Verify that registration is handled correctly when the device clock is wrong, either completing successfully or failing with a clear error and no partial passkey
+Connect ID is active and has no passkey registered. Device has a screen lock configured. Device date / time is set manually to an incorrect value.
+1. Open the UAP page.
+2. Enter the Connect ID.
+3. Enter the password.
+4. Click the Sign in button.
+5. On the OTP page, enter the correct OTP.
+6. Click Submit.
+7. On the create passkey prompt, choose to create a passkey.
+8. Complete user verification on the OS passkey prompt.
+1. Registration either completes successfully or fails with a clear error message.
+2. On failure, no partial passkey is left on the device or the Connect ID.
+TC_018	
+Verify that after deleting the existing passkey and registering a new one, the new passkey signs in and the old one no longer works (end to end)
+Connect ID is active and has one passkey registered.
+1. Open the UAP page.
+2. Enter the Connect ID.
+3. Enter the password.
+4. Click the Sign in button.
+5. On the OTP page, enter the correct OTP.
+6. Click Submit.
+7. Open the passkey management page and delete the existing passkey.
+8. Sign out and repeat steps 1 to 6.
+9. On the create passkey prompt, create a new passkey and complete user verification.
+10. Sign out and sign in with the new passkey.
+11. Sign out and try to sign in with the old (deleted) passkey.
+1. The old passkey is removed from the passkey list.
+2. The create passkey prompt is displayed again after deletion.
+3. The new passkey is created and signs in successfully.
+4. Sign-in with the old passkey fails with an appropriate message.
+TC_019	
+Verify that when two devices attempt registration at the same time before any passkey exists, only one passkey is created and the other attempt is rejected
+Connect ID is active and has no passkey registered. Two devices are available, each with a screen lock.
+1. On Device 1 and Device 2: Open the UAP page.
+2. Enter the Connect ID.
+3. Enter the password.
+4. Click the Sign in button.
+5. On the OTP page, enter the correct OTP.
+6. Click Submit.
+7. On both devices, choose to create a passkey on the create passkey prompt.
+8. Complete user verification on both devices at the same time (or as close as possible).
+9. Check the passkey list for the Connect ID.
+1. Only one passkey is created for the Connect ID.
+2. The other device shows an appropriate message and no passkey is saved on it.
+TC_020	
+Verify that a passkey registered in one browser can be used to sign in from another browser on the same device
+Connect ID is active and has a passkey registered using Browser A on the device. Browser B is installed on the same device.
+1. Open the UAP page in Browser B.
+2. Choose to sign in with the passkey for the Connect ID.
+3. Complete user verification on the OS passkey prompt.
+1. The passkey registered in Browser A is offered in Browser B.
+2. The user signs in successfully and lands on the UAP home page.
+3. The create passkey prompt is not displayed.
+TC_021	
+Verify that a synced passkey can be used to sign in on a second device using that device's own screen lock (biometrics / PIN)
+Synced passkey is registered on Device 1. Device 2 is signed in to the same iCloud Keychain / Google Password Manager account and the passkey has synced.
+1. On Device 2, open the UAP page.
+2. Choose to sign in with the passkey for the Connect ID.
+3. On the OS passkey prompt, verify with Device 2's own screen lock.
+1. The synced passkey is offered on Device 2.
+2. The OS prompt asks for Device 2's own biometrics / PIN, not Devi
