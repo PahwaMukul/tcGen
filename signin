@@ -3,7 +3,7 @@ Verify that cancelling the OS passkey prompt during sign-in does not sign the us
 Verify that repeated user verification failures during sign-in do not sign the user in and a clear error message is shown
 Verify that when the OS passkey prompt times out during sign-in, the user is not signed in and can restart sign-in
 Verify that passkey sign-in is not possible after the passkey was deleted from the device, and the user can still sign in with password and OTP
-Verify that passkey sign-in is not offered for a Connect ID with no passkey, and the create passkey prompt is displayed after password and OTP sign-in
+Verify that when the user's Connect ID has no passkey, no passkey for it is offered on the device, and the create passkey prompt is displayed after password and OTP sign-in
 Verify that a device-bound passkey is not offered on a device where it was never registered, and the user can sign in with password and OTP
 Verify that the user can sign in with the passkey and sign out repeatedly (5 cycles) without errors
 Verify that when the session expires after passkey sign-in, the user is signed out and can sign in again with the passkey
@@ -18,3 +18,4 @@ Verify that browser Back and Forward after passkey sign-in and sign-out do not e
 Verify that losing the network right after approving the OS passkey prompt shows an appropriate error and the user can sign in once the network is restored
 Verify that the user can still sign in with the passkey after changing the device biometrics or device PIN
 Verify that passkey sign-in is blocked with an appropriate message when the Connect ID is locked or disabled
+Verify that when passkeys for two different Connect IDs exist on the same device, each passkey signs the user in to the Connect ID it was registered for
