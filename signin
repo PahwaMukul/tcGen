@@ -19,3 +19,26 @@ Verify that losing the network right after approving the OS passkey prompt shows
 Verify that the user can still sign in with the passkey after changing the device biometrics or device PIN
 Verify that passkey sign-in is blocked with an appropriate message when the Connect ID is locked or disabled
 Verify that when passkeys for two different Connect IDs exist on the same device, each passkey signs the user in to the Connect ID it was registered for
+
+
+Connect ID is active and has a passkey registered on the device. User is signed out of UAP.
+Connect ID is active and has a passkey registered on the device. User is signed out of UAP.
+Connect ID is active and has a passkey registered on the device. User is signed out of UAP.
+Connect ID is active and has a passkey registered on the device. User is signed out of UAP.
+Connect ID is active and had a passkey registered on the device. The passkey has been deleted from the device (OS / password manager settings).
+Connect ID is active and has no passkey registered. No passkey for this Connect ID exists on the device.
+Connect ID is active and has a device-bound passkey registered on Device 1 only. Device 2 has never been used to register.
+Connect ID is active and has a passkey registered on the device. User is signed out of UAP.
+Connect ID is active and has a passkey registered on the device. User is signed out of UAP.
+Connect ID is active and has a passkey registered on the device. User is signed out of UAP.
+Connect ID is active and has a passkey registered on the device. User is signed out of UAP.
+Connect ID is active and has a passkey registered on the device. User is signed out of UAP.
+Connect ID is active and has a passkey registered on the device. User is signed out of UAP.
+Connect ID is active and has a passkey registered on the device. User is signed out of UAP.
+Connect ID is active and has a passkey registered on the device. User is signed out of UAP.
+Connect ID is active and has a passkey registered on the device. User is signed out of UAP.
+Connect ID is active and has a passkey registered on the device. User is signed out of UAP.
+Connect ID is active and has a passkey registered on the device. User is signed out of UAP.
+Connect ID is active and has a passkey registered on the device. User is signed out of UAP.
+Connect ID has a passkey registered on the device. The Connect ID is locked or disabled.
+Passkeys for Connect ID A and Connect ID B are registered on the same device. User is signed out of UAP.
