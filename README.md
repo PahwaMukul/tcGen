@@ -2,10 +2,10 @@ Hi,
 
 Just wanted to highlight a limitation we’re facing with synced passkey testing on TD laptops.
 
-In Chrome, we’re not allowed to sign in with personal Google accounts, so we can’t save passkeys through Google Password Manager. In Edge, although the TD account is already logged in, the organization has disabled the passkey option in Microsoft Password Manager.
+In Chrome, personal Google account sign-in is restricted, so we can’t save passkeys through Google Password Manager. In Edge, although the TD account is already logged in, the organization has disabled the passkey option in Microsoft Password Manager.
 
-We can still try registering through the TD laptop and scan the QR code using an external mobile device. The passkey should then be stored in the phone’s cloud account, provided the registration flow supports it.
+We can successfully register and store the passkey on an external mobile device by scanning the QR code from the TD laptop.
 
-However, we won’t be able to test using that synced passkey from the phone on the TD laptop because of these restrictions.
+However, we won’t be able to test using that same passkey from the mobile device on the TD laptop due to the restrictions on accessing personal cloud accounts.
 
-So, we can cover registration through an external device, but we’ll need an alternative setup to validate the complete synced passkey flow.
+So, we can test passkey registration on an external device, but we’ll need an alternative setup to validate the complete synced passkey authentication flow.
