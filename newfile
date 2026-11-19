@@ -1,8 +1,4 @@
-page.onResponse(r -> {
-    String u = r.url().toLowerCase();
-    if (u.contains("passkey") || u.contains("webauthn") || u.contains("fido") || u.contains("assert") || u.contains("authenticat")) {
-        String body; try { body = r.text(); } catch (Exception e) { body = "<no body>"; }
-        logger.info("RP response " + r.status() + " " + r.request().method() + " " + r.url() + " -> " + body);
-    }
-});
-page.onConsoleMessage(m -> logger.info("console " + m.type() + ": " + m.text()));
+const c = navigator.credentials;
+const oc = c.create.bind(c), og = c.get.bind(c);
+c.create = o => { console.log('CREATE rp.id =', o?.publicKey?.rp?.id ?? '(not set: defaults to ' + location.hostname + ')'); return oc(o); };
+c.get    = o => { console.log('GET rpId =', o?.publicKey?.rpId ?? '(not set: defaults to ' + location.hostname + ')', 'mediation =', o?.mediation); return og(o); };
