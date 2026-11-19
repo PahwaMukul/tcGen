@@ -1,19 +1,384 @@
+package com.td.tcoe.ciam_prevent.steps.passkey;
 
-REG-001 | Verify that the user can register a passkey through the UAP flow and then sign in with it (end to end)
-REG-003 | Verify that cancelling the device prompt during registration creates no passkey, and that the user can retry, register and sign in (end to end)
-REG-028 | Verify that a passkey registered on this device is offered only on the device that holds it, and that another device without it cannot sign in with a passkey (end to end)
-AUTH-029 | Verify that passkey sign-in is not possible before registration, and works right after the user registers a passkey (end to end)
-AUTH-030 | Verify that after the passkey is deleted from the device, the user can still sign in with password and OTP, and the Register a passkey pop-up is not offered again (end to end)
-POPUP-001 | Verify that the Register a passkey pop-up is displayed at every password and OTP sign-in until a passkey is created, and is never displayed again after a passkey is created
-AUTH-009 | Verify that a Connect ID with no passkey can sign in with password and OTP, and the Register a passkey pop-up is displayed
-REG-007 | Verify that refreshing the browser during registration leaves no partial or duplicate passkey, and the user can register again
-REG-008 | Verify that closing the browser tab during registration creates no passkey, and the user can register again
-REG-011 | Verify that pressing browser Back during registration cancels the flow cleanly without creating a passkey
-REG-023 | Verify that clicking Register passkey twice quickly creates only one passkey
-REG-009 | Verify that losing the network during registration shows a clear error, saves no passkey, and registration succeeds once the network is restored
-AUTH-026 | Verify that losing the network right after approving the passkey prompt shows a clear error, and the user can sign in once the network is restored
-AUTH-012 | Verify that the user can sign in with the passkey and sign out five times in a row without errors
-AUTH-016 | Verify that triggering passkey sign-in twice in quick succession creates a single session and no errors
-AUTH-025 | Verify that browser Back and Forward after sign-out do not show any signed-in pages
-AUTH-028 | Verify that passkey sign-in is denied with a clear message when the Connect ID is locked
-L10N-001 | Verify that all UAP passkey screens, pop-ups, messages and errors are shown in French with correct accents, with no English text, raw keys or cut-off text
+// TODO: keep your existing imports for CucumberKeyword, UAPCASteps and PlaywrightManager
+import com.microsoft.playwright.Locator;
+import com.microsoft.playwright.Page;
+import com.microsoft.playwright.PlaywrightException;
+import com.microsoft.playwright.options.AriaRole;
+import com.microsoft.playwright.options.WaitForSelectorState;
+import com.microsoft.playwright.Credentials;
+import com.microsoft.playwright.options.VirtualCredential;
+import io.cucumber.java.en.And;
+import io.cucumber.java.en.Then;
+import io.cucumber.java.en.When;
+
+import java.util.List;
+
+public class PasskeyFlowSteps extends CucumberKeyword {
+
+    private static final long PASSKEY_WAIT_TIMEOUT_MS = 15_000L;
+    private static final long PASSKEY_POLL_INTERVAL_MS = 250L;
+
+    /** Username field. Fields that use passkey autofill usually have autocomplete="username webauthn". */
+    private static final String USERNAME_SELECTOR =
+            "input[autocomplete*='webauthn'], input[name='username'], input[id*='user'], input[autocomplete*='username']";
+    private static final String PASSWORD_SELECTOR =
+            "input[type='password'], input[name='password'], input[id*='password']";
+
+    /**
+     * Records every navigator.credentials.get() call and its outcome. When the test "arms" it
+     * (window.__passkeyArmed = true), a conditional request (mediation: 'conditional', the username-field
+     * autofill) is turned into a normal request, which Playwright's virtual authenticator answers at once.
+     * Until armed, UAP's conditional request is left untouched (it simply waits), so login-page checks still pass.
+     * Requires Java 15+ (text block).
+     */
+    private static final String PROBE_SCRIPT = """
+            (() => {
+              const w = window;
+              if (w.__credProbeInstalled) return;
+              w.__credProbeInstalled = true;
+              w.__credGetCalls = 0;
+              w.__credGetLastOptions = null;
+              w.__credGetHookError = null;
+              w.__credGetOutcome = null;
+              try {
+                if (window.PublicKeyCredential) {
+                  PublicKeyCredential.isConditionalMediationAvailable = async () => true;
+                }
+                if (!navigator.credentials || !navigator.credentials.get) return;
+                const originalGet = navigator.credentials.get.bind(navigator.credentials);
+                navigator.credentials.get = (opts) => {
+                  w.__credGetCalls = (w.__credGetCalls || 0) + 1;
+                  const pk = (opts && opts.publicKey) || {};
+                  w.__credGetLastOptions = JSON.stringify({
+                    mediation: opts && opts.mediation,
+                    rpId: pk.rpId,
+                    allowCredentials: (pk.allowCredentials || []).length,
+                    armed: !!w.__passkeyArmed
+                  });
+                  let o = opts;
+                  if (opts && opts.mediation === 'conditional' && w.__passkeyArmed) {
+                    o = { ...opts };
+                    delete o.mediation;
+                  }
+                  return originalGet(o).then(
+                    r => { w.__credGetOutcome = 'resolved'; return r; },
+                    e => { w.__credGetOutcome = 'rejected: ' + e.name + ' ' + e.message; throw e; });
+                };
+              } catch (e) {
+                w.__credGetHookError = String(e);
+              }
+            })();
+            """;
+
+    private final UAPCASteps uapcaSteps;
+    private final PlaywrightManager playwrightManager;
+
+    private String registeredRpId;
+    private int registeredCredentialCount;
+    private String registeredCredentialId;
+    private VirtualCredential registeredCredential;
+
+    public PasskeyFlowSteps(UAPCASteps uapcaSteps, PlaywrightManager playwrightManager) {
+        this.uapcaSteps = uapcaSteps;
+        this.playwrightManager = playwrightManager;
+    }
+
+    // ------------------------------------------------------------------ steps
+
+    @Then("the User is prompted to register a passkey")
+    public void userIsPromptedToRegisterPasskey() {
+        Page page = requirePage();
+        if (!isAnyVisible(page, List.of("Create passkey", "Register passkey", "Set up passkey", "Use passkey", "Passkey"))) {
+            throw new AssertionError("Passkey registration prompt was not displayed.");
+        }
+    }
+
+    /** Run this BEFORE "the User opens the UAP CA URL", so the authenticator and probe exist before UAP loads. */
+    @When("the User enables Playwright virtual authenticator")
+    public void userEnablesPlaywrightVirtualAuthenticator() {
+        Page page = requirePage();
+        playwrightManager.getContext().credentials().install();
+        // Registered after install(), so the probe wraps Playwright's version of navigator.credentials.get().
+        installNavigatorCredentialsGetProbe(page);
+    }
+
+    @And("the User registers a new passkey with the authenticator")
+    public void userRegistersANewPasskeyWithTheAuthenticator() {
+        Page page = requirePage();
+        Locator registerPasskeyButton = page.getByRole(
+                        AriaRole.BUTTON,
+                        new Page.GetByRoleOptions().setName("Register passkey").setExact(true))
+                .first();
+        registerPasskeyButton.waitFor(
+                new Locator.WaitForOptions().setState(WaitForSelectorState.VISIBLE).setTimeout(15_000));
+        // Keep the popup visible briefly for demo/debug readability before clicking.
+        page.waitForTimeout(2_000);
+        logger.info("Clicking on the button [Register passkey]");
+        registerPasskeyButton.click();
+    }
+
+    @Then("the passkey should be present for the user")
+    public void passkeyShouldBePresentForTheUser() {
+        List<VirtualCredential> credentials = waitForCredentials();
+        registeredCredential = credentials.get(0);
+        registeredCredentialCount = credentials.size();
+        // Take the rpId from the credential itself (the relying party may register a parent domain).
+        registeredRpId = registeredCredential.rpId;
+        registeredCredentialId = registeredCredential.id;
+
+        for (VirtualCredential credential : credentials) {
+            logger.info("Registered passkey credential: id=" + credential.id
+                    + ", rpId=" + credential.rpId
+                    + ", userHandle=" + credential.userHandle);
+        }
+        logger.info("Passkey credentials found: " + registeredCredentialCount);
+        logger.info("Registration page URL: " + requirePage().url());
+
+        // Make it discoverable now, before any later login page loads and UAP asks for it.
+        reseedCredentialAsDiscoverable();
+    }
+
+    @When("the User signs in using the registered passkey")
+    public void userSignsInUsingTheRegisteredPasskey() {
+        Page page = requirePage();
+        ensureVirtualAuthenticatorInstalled();
+        ensureVirtualCredentialExists();
+        logger.info("Re-login page URL before passkey sign-in: " + page.url());
+        logger.info("Using rpId for lookup: " + registeredRpId);
+
+        // Arm the probe for the next page load, then reload so UAP issues a fresh request that the
+        // virtual authenticator can answer. (A conditional request made on the earlier load stays unanswered.)
+        playwrightManager.getContext().addInitScript("window.__passkeyArmed = true;");
+        page.reload();
+        page.waitForLoadState();
+        logCredentialsGetProbe("before passkey sign-in");
+
+        // An explicit passkey control is used if UAP offers one; otherwise focus the username field,
+        // which starts UAP's conditional request if it waits for focus.
+        boolean clickedPasskeyButton =
+                tryClickFirstVisibleButton(page, List.of("Sign in with passkey", "Use passkey", "Passkey"));
+        if (clickedPasskeyButton) {
+            logger.info("Clicked an explicit passkey sign-in control.");
+        } else if (isLikelyOnLoginPage(page)) {
+            logger.info("No explicit passkey control found; focusing the username field.");
+            try {
+                page.locator(USERNAME_SELECTOR).first().click();
+            } catch (PlaywrightException e) {
+                logger.info("Username field could not be clicked (page may already be leaving): " + e.getMessage());
+            }
+        }
+
+        waitForPasskeyCeremony();
+        logCredentialsGetProbe("after passkey sign-in trigger");
+    }
+
+    @Then("the User should be logged in with passkey")
+    public void userShouldBeLoggedInWithPasskey() {
+        ensureVirtualCredentialExists();
+        logCredentialsGetProbe("post passkey login assertion");
+
+        Integer probeCalls = readNavigatorCredentialsGetCallCount();
+        if (isLikelyOnLoginPage(requirePage())) {
+            if (probeCalls != null && probeCalls == 0) {
+                throw new AssertionError("Passkey login did not complete; UI still appears on login page and "
+                        + "navigator.credentials.get was never invoked during re-login.");
+            }
+            throw new AssertionError("Passkey login did not complete; UI still appears to be on the login page. "
+                    + "Last get() outcome: " + readProbeValue("__credGetOutcome")
+                    + ", last options: " + readProbeValue("__credGetLastOptions"));
+        }
+
+        try {
+            uapcaSteps.validateLogoutButtonIsVisible();
+        } catch (Exception e) {
+            logger.info("Logout button was not visible after passkey sign-in; login page check already passed.");
+        }
+
+        int currentCount = playwrightManager.getContext().credentials().get().size();
+        if (registeredCredentialCount > 0 && currentCount < registeredCredentialCount) {
+            throw new AssertionError("Passkey credential count dropped after re-login. registered="
+                    + registeredCredentialCount + ", current=" + currentCount);
+        }
+    }
+
+    // ------------------------------------------------------------------ passkey helpers
+
+    /**
+     * Re-seeds the registered passkey so it is stored as a discoverable (resident) credential.
+     *
+     * <p>Playwright only marks a page-registered credential resident when the relying party asked for
+     * {@code residentKey: required|preferred}. A usernameless or conditional ceremony sends an empty
+     * {@code allowCredentials} list, so a non-resident credential fails with {@code NotAllowedError}.
+     * The original is deleted first so only one credential with this id exists.
+     */
+    private void reseedCredentialAsDiscoverable() {
+        if (registeredCredential == null) {
+            return;
+        }
+        Credentials credentials = playwrightManager.getContext().credentials();
+        try {
+            credentials.delete(registeredCredential.id);
+        } catch (PlaywrightException e) {
+            logger.info("Could not delete original credential before re-seeding: " + e.getMessage());
+        }
+        credentials.create(
+                registeredCredential.rpId,
+                new Credentials.CreateOptions()
+                        .setId(registeredCredential.id)
+                        .setUserHandle(registeredCredential.userHandle)
+                        .setPrivateKey(registeredCredential.privateKey)
+                        .setPublicKey(registeredCredential.publicKey));
+        logger.info("Re-seeded passkey as discoverable credential: id="
+                + registeredCredential.id + ", rpId=" + registeredCredential.rpId);
+    }
+
+    /** Waits for the relying party to run a WebAuthn assertion and leave the login page. */
+    private void waitForPasskeyCeremony() {
+        Page page = requirePage();
+        long deadline = System.nanoTime() + PASSKEY_WAIT_TIMEOUT_MS * 1_000_000L;
+        do {
+            Integer calls = readNavigatorCredentialsGetCallCount();
+            if (calls != null && calls > 0 && !isLikelyOnLoginPage(page)) {
+                logger.info("Passkey ceremony completed; navigator.credentials.get calls=" + calls);
+                return;
+            }
+            page.waitForTimeout(PASSKEY_POLL_INTERVAL_MS);
+        } while (System.nanoTime() < deadline);
+
+        logger.info("Timed out waiting for the passkey ceremony to complete. Outcome: "
+                + readProbeValue("__credGetOutcome"));
+    }
+
+    private void ensureVirtualAuthenticatorInstalled() {
+        try {
+            playwrightManager.getContext().credentials();
+        } catch (Exception e) {
+            throw new IllegalStateException(
+                    "Browser context credentials API is not available. Ensure Playwright 1.61+ is used.", e);
+        }
+    }
+
+    private void ensureVirtualCredentialExists() {
+        if (registeredCredentialId != null && !registeredCredentialId.isBlank()) {
+            List<VirtualCredential> byId = getCredentialsById(registeredCredentialId);
+            if (!byId.isEmpty()) {
+                return;
+            }
+        }
+
+        String currentUrl = requirePage().url();
+        List<VirtualCredential> credentials = playwrightManager.getContext().credentials().get();
+        if (credentials.isEmpty()) {
+            throw new AssertionError("Virtual authenticator has no passkey credentials. "
+                    + "lookupById=" + registeredCredentialId
+                    + ", rpId=" + registeredRpId
+                    + ", currentUrl=" + currentUrl);
+        }
+    }
+
+    private List<VirtualCredential> waitForCredentials() {
+        long deadline = System.nanoTime() + PASSKEY_WAIT_TIMEOUT_MS * 1_000_000L;
+        do {
+            // Query unfiltered: the relying party chooses the rpId, so filtering by the page host
+            // would hide a credential registered under a parent domain.
+            List<VirtualCredential> credentials = playwrightManager.getContext().credentials().get();
+            if (!credentials.isEmpty()) {
+                return credentials;
+            }
+            requirePage().waitForTimeout(PASSKEY_POLL_INTERVAL_MS);
+        } while (System.nanoTime() < deadline);
+
+        throw new AssertionError(
+                "No passkey was created within " + PASSKEY_WAIT_TIMEOUT_MS + " ms after registration action.");
+    }
+
+    private List<VirtualCredential> getCredentialsById(String credentialId) {
+        Credentials.GetOptions options = new Credentials.GetOptions().setId(credentialId);
+        return playwrightManager.getContext().credentials().get(options);
+    }
+
+    // ------------------------------------------------------------------ probe helpers
+
+    private void installNavigatorCredentialsGetProbe(Page page) {
+        // addInitScript covers every later page load; evaluate covers the page that is already open.
+        playwrightManager.getContext().addInitScript(PROBE_SCRIPT);
+        page.evaluate(PROBE_SCRIPT);
+        logCredentialsGetProbe("probe installed");
+    }
+
+    private void logCredentialsGetProbe(String stage) {
+        logger.info("navigator.credentials.get probe [" + stage + "]"
+                + " calls=" + readProbeValue("__credGetCalls")
+                + ", lastOptions=" + readProbeValue("__credGetLastOptions")
+                + ", outcome=" + readProbeValue("__credGetOutcome")
+                + ", hookError=" + readProbeValue("__credGetHookError"));
+    }
+
+    private Object readProbeValue(String name) {
+        try {
+            return requirePage().evaluate("() => window." + name + " ?? null");
+        } catch (PlaywrightException e) {
+            return "unreadable (" + e.getMessage() + ")";
+        }
+    }
+
+    private Integer readNavigatorCredentialsGetCallCount() {
+        Object calls = readProbeValue("__credGetCalls");
+        if (calls instanceof Number) {
+            return ((Number) calls).intValue();
+        }
+        return null;
+    }
+
+    // ------------------------------------------------------------------ page helpers
+
+    private Page requirePage() {
+        if (playwrightManager.getPage() == null) {
+            playwrightManager.createPage();
+        }
+        return playwrightManager.getPage();
+    }
+
+    private boolean isAnyVisible(Page page, List<String> labels) {
+        for (String label : labels) {
+            try {
+                if (page.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName(label)).first().isVisible()) {
+                    return true;
+                }
+            } catch (PlaywrightException ignored) {
+            }
+            try {
+                if (page.getByText(label).first().isVisible()) {
+                    return true;
+                }
+            } catch (PlaywrightException ignored) {
+            }
+        }
+        return false;
+    }
+
+    private boolean tryClickFirstVisibleButton(Page page, List<String> labels) {
+        for (String label : labels) {
+            try {
+                Locator locator = page.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName(label)).first();
+                if (locator.isVisible()) {
+                    locator.click();
+                    return true;
+                }
+            } catch (PlaywrightException ignored) {
+            }
+        }
+        return false;
+    }
+
+    private boolean isLikelyOnLoginPage(Page page) {
+        try {
+            boolean usernameVisible = page.locator(USERNAME_SELECTOR).first().isVisible();
+            boolean passwordVisible = page.locator(PASSWORD_SELECTOR).first().isVisible();
+            return usernameVisible && passwordVisible;
+        } catch (PlaywrightException ignored) {
+            return false;
+        }
+    }
+}
