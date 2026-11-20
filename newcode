@@ -1,0 +1,86 @@
+package com.td.tcoe.ciam_prevent.steps.passkey;
+
+// TODO: keep your existing imports for CucumberKeyword, UAPCASteps and PlaywrightManager
+import com.microsoft.playwright.Credentials;
+import com.microsoft.playwright.Locator;
+import com.microsoft.playwright.Page;
+import com.microsoft.playwright.options.AriaRole;
+import com.microsoft.playwright.options.VirtualCredential;
+import io.cucumber.java.en.And;
+import io.cucumber.java.en.Then;
+import io.cucumber.java.en.When;
+
+public class PasskeyFlowSteps extends CucumberKeyword {
+
+    private static final double TIMEOUT_MS = 15_000;
+
+    /** Test-only: once armed, UAP's username-field passkey request is answered by the virtual authenticator. */
+    private static final String CONDITIONAL_SHIM = """
+            (() => {
+              if (window.PublicKeyCredential) PublicKeyCredential.isConditionalMediationAvailable = async () => true;
+              const get = navigator.credentials.get.bind(navigator.credentials);
+              navigator.credentials.get = (opts) => {
+                if (opts && opts.mediation === 'conditional' && window.__passkeyArmed) {
+                  opts = { ...opts };
+                  delete opts.mediation;
+                }
+                return get(opts);
+              };
+            })();
+            """;
+
+    private final UAPCASteps uapcaSteps;
+    private final PlaywrightManager playwrightManager;
+
+    public PasskeyFlowSteps(UAPCASteps uapcaSteps, PlaywrightManager playwrightManager) {
+        this.uapcaSteps = uapcaSteps;
+        this.playwrightManager = playwrightManager;
+    }
+
+    /** Run before "the User opens the UAP CA URL". */
+    @When("the User enables Playwright virtual authenticator")
+    public void userEnablesPlaywrightVirtualAuthenticator() {
+        credentials().install();
+        playwrightManager.getContext().addInitScript(CONDITIONAL_SHIM);
+    }
+
+    @And("the User registers a new passkey with the authenticator")
+    public void userRegistersANewPasskeyWithTheAuthenticator() {
+        page().getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("Register passkey").setExact(true))
+              .first()
+              .click(new Locator.ClickOptions().setTimeout(TIMEOUT_MS));
+    }
+
+    @Then("the passkey should be present for the user")
+    public void passkeyShouldBePresentForTheUser() {
+        page().waitForCondition(() -> !credentials().get().isEmpty(),
+                new Page.WaitForConditionOptions().setTimeout(TIMEOUT_MS));
+        VirtualCredential c = credentials().get().get(0);
+        logger.info("Passkey registered: id=" + c.id + ", rpId=" + c.rpId);
+
+        // Store it as discoverable (needed only if UAP doesn't ask for a resident key; remove if sign-in works without it)
+        credentials().delete(c.id);
+        credentials().create(c.rpId, new Credentials.CreateOptions()
+                .setId(c.id).setUserHandle(c.userHandle).setPrivateKey(c.privateKey).setPublicKey(c.publicKey));
+    }
+
+    @When("the User signs in using the registered passkey")
+    public void userSignsInUsingTheRegisteredPasskey() {
+        playwrightManager.getContext().addInitScript("window.__passkeyArmed = true;");
+        page().reload();   // UAP asks for the passkey again and the virtual authenticator answers it
+    }
+
+    @Then("the User should be logged in with passkey")
+    public void userShouldBeLoggedInWithPasskey() {
+        uapcaSteps.validateLogoutButtonIsVisible();
+    }
+
+    private Credentials credentials() {
+        return playwrightManager.getContext().credentials();
+    }
+
+    private Page page() {
+        if (playwrightManager.getPage() == null) playwrightManager.createPage();
+        return playwrightManager.getPage();
+    }
+}
