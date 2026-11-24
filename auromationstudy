@@ -1,0 +1,52 @@
+Passkey automation assessment – completed
+
+AC1: Dependencies and limitations (WebAuthn, browser/device, authenticators, environment, test data)
+
+WebAuthn / authenticator
+- Automation uses Playwright's built-in virtual authenticator (BrowserContext.credentials, Playwright 1.61+, Java + Cucumber). It replaces the real device prompt (Windows Hello / Face ID / fingerprint).
+- The browser's passkey list under the username field (conditional UI) is browser UI and cannot be clicked by automation. A small test-only script lets the virtual authenticator answer UAP's request instead.
+- The virtual authenticator does not enforce real-browser rules (e.g. RP ID must match the site domain), so a passing automated test does not replace a manual check on real devices.
+
+Browser / device
+- Automation runs on Chromium browsers only (Chrome, Edge), English and French.
+- Not automatable: Safari, iPhone/iPad, Android devices, real OS prompts.
+
+Environment
+- Defect found and fixed: RP ID in the test environment was "localhost" while UAP is served from authentication6.sys.td.com. The virtual authenticator accepted it but UAP rejected sign-in. After the RP ID was changed to the sys.td.com domain, passkey sign-in works.
+
+Test data
+- A test customer can register a passkey only once: after that the Register passkey pop-up is never shown again and delete is not built yet. Each automated run needs a fresh customer, or a backend reset of the passkey state.
+- The script needs to read the OTP (fixed test OTP, test inbox or endpoint).
+
+AC2: Limitations / constraints for passkey testing (automation and manual scope)
+
+Automation scope (virtual authenticator)
+- Register passkey and sign in end to end
+- Cancel / failed verification during registration and retry
+- Register passkey pop-up rule (shown until a passkey exists, never after)
+- Passkey deleted from the device: password + OTP still works, no pop-up
+- Interruptions during registration: refresh, back, close tab, double click
+- Network loss during registration and sign-in
+- Repeated sign-in / sign-out, locked Connect ID
+- English / French UI text
+
+Manual scope
+- QR code / cross-device sign-in (needs real phone, Bluetooth, proximity)
+- Synced passkeys (iCloud Keychain, Google Password Manager, Edge/Microsoft Password Manager)
+- Real OS prompts, passkey name (includes user email), browser passkey dropdown
+- Safari, iPhone/iPad, Android phone/tablet
+- Device restart, biometric/PIN change on a real device
+
+Other constraints
+- Delete passkey in UAP not yet built (later sprint); related cases deferred.
+- Edge on TD laptops saves passkeys with Windows Hello (device-bound); synced cases are N/A there unless sync is confirmed.
+- API/payload-level security checks (RP ID, challenge, replay, tampering) are out of functional QA scope (pen test team).
+
+AC3: Recommended automation approach and candidate scenarios
+- Approach: Playwright (Java) + Cucumber with Playwright's virtual authenticator, run on Chrome and Edge in en-CA and fr-CA; manual testing for QR, sync and real devices.
+- Proof of concept passing: login (Connect ID + password + OTP) -> Register passkey -> logout -> sign in with stored passkey -> dashboard.
+- Candidate scenarios for future automation: the automation scope list above.
+- Prerequisites before pipeline: fresh test data or passkey reset, OTP access for scripts.
+- Approach and scenarios shared with the QE team. Test cases and the end-to-end suite are in Passkey_E2E_Test_Cases.xlsx (attached).
+
+Closing this ticket as all acceptance criteria are met.
