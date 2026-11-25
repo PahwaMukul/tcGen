@@ -1,0 +1,9 @@
+Hi,
+
+I hit a few blockers while setting up the Android passkey automation:
+
+	•	Google sign-in fails on the emulator. It says "There was a problem communicating with Google servers." The logs and Chrome both show certificate errors, with Google's certificate issued by sase.tdbank.ca, so our SSL inspection is blocking it. Android passkeys need a Google account, so I can't test passkeys at all right now. We'd need Google sign-in and Play services excluded from SSL inspection, or a test network without it.
+	•	Appium server won't install. npm returns 400 Bad Request from repo.td.com (its-npm-all) for the @appium packages. We have the Java client in the framework, but we still need the server, so the registry team would need to allow these.
+	•	Android Studio is outdated. I'm on 3.5.2 from 2019 and need the latest version.
+
+I have the logs and screenshots if needed. Any idea who handles SSL inspection exemptions?
