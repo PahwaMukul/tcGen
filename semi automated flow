@@ -7,3 +7,5 @@ I hit a few blockers while setting up the Android passkey automation:
 	•	Android Studio is outdated. I'm on 3.5.2 from 2019 and need the latest version.
 
 I have the logs and screenshots if needed. Any idea who handles SSL inspection exemptions?
+
+Analyse the feasibility of automating passkey flows (registration and sign-in) for the TD UAP application on Android emulators using Appium, including semi-automated flows where needed. Identify environment setup needs and any blockers. Findings will be added in the comments
