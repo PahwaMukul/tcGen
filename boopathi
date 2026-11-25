@@ -1,0 +1,21 @@
+Hey Bhupati,
+
+You might already be aware of the discussion I had with Vamsi regarding semi-automating passkey flows for iOS and Android devices.
+
+I explored a few possible approaches today and wanted to share my findings.
+
+First, I looked into using Android and iOS emulators. For Android, TD’s network security certificates are preventing access to certain Google Play services. We may need IT intervention to resolve this, although getting an exemption might be difficult due to TD’s security policies. For iOS, we may face similar restrictions. Additionally, iOS simulator automation requires Xcode, which is only available on macOS and cannot be installed on our Windows laptops.
+
+I also explored Playwright WebKit as an alternative. However, it only provides a virtual browser viewport and cannot interact with native OS prompts, biometric authentication dialogs, or native device functionality. Since these interactions are essential for passkey testing, this approach doesn’t seem suitable for our requirements.
+
+The third approach, and probably the most promising one, is using BrowserStack with Appium and Selenium. Playwright can also integrate with BrowserStack, but it still won’t provide access to native OS prompts. For that, we would likely need Appium to handle native device interactions.
+
+I also did some initial research and found that BrowserStack supports Appium-based native device interactions and biometric simulation. It also has documented support for WebAuthn/passkey testing on Android through BrowserStack Live. However, it’s not yet clear whether we can combine these capabilities to achieve end-to-end automated passkey registration and authentication.
+
+Could you please do some quick research on the feasibility of the BrowserStack + Appium approach? If you have any prior experience with this integration, your insights would be helpful too. Feel free to use ChatGPT, Copilot, Claude, or any other resources.
+
+One important thing to investigate is whether we can log in to Google/Apple accounts on BrowserStack devices to store and retrieve passkeys. If device-level authentication or passkey storage cannot be automated, we may have to settle for partial/semi-automation.
+
+In that case, we can still automate the web-based portions, including English/French translations, UI validations, cosmetic checks, and other applicable scenarios, while handling native device interactions manually.
+
+Please share your findings and recommended approach by tomorrow. We don’t need an exhaustive analysis, just a quick assessment of what’s feasible and any major limitations we should be aware of.
