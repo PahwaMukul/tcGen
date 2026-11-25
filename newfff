@@ -1,0 +1,14 @@
+Look into automating the passkey flows (registration and sign-in) for the TD UAP application on Android emulators using Appium. This covers what setup we need, whether a semi-automated approach is required, and anything blocking us. I'll post my findings in the comments.
+
+Findings (comment)
+
+Here's where things stand so far:
+
+	•	Node.js 22 is installed, the Appium Java client is already in our framework, and the Pixel emulator (Android 15) is running.
+	•	Google sign-in fails on the emulator. Our SSL inspection (sase.tdbank.ca) re-signs Google's certificates, and Google's apps reject them. The logs show "Trust anchor for certification path not found". Android passkeys need a signed-in Google account, so we can't create or test passkeys right now. We need Google sign-in and Play services excluded from SSL inspection, or a test network without it.
+	•	The Appium server won't install. npm gets a 400 Bad Request from repo.td.com for the @appium packages, so the registry team needs to allow them.
+	•	Android Studio is on 3.5.2 from 2019 and needs updating to the latest version.
+	•	iPhone automation isn't possible from Windows. It needs a Mac with Xcode or a cloud device service like BrowserStack, which would need security approval.
+	•	The web steps (Connect ID, password, OTP) can be automated. The passkey prompt is a native Android screen, so Appium has to switch to the native context for it, with fingerprint faked through adb. Until the blockers are fixed, that step would be semi-automated, done by hand.
+
+I have the logs and screenshots if anyone needs them.
