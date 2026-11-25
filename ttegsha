@@ -1,0 +1,11 @@
+Node.js 22, the Appium Java client and the Pixel emulator (Android 15) are set up.
+
+We'll use Appium, since the passkey prompt is a native Android screen that Playwright can't handle.
+
+Blocker: Google sign-in fails on the emulator because our SSL inspection blocks Google's certificates. Without a Google account, we can't create passkeys. We need Google sign-in excluded from SSL inspection, or a test network without it.
+
+Blocker: the Appium server won't install, because npm gets a 400 error from repo.td.com for the @appium packages.
+
+Android Studio 3.5.2 should be updated.
+
+iPhone passkey automation on BrowserStack is yet to be explored.
